@@ -181,14 +181,16 @@ public:
             }
 
             // readModel로 읽어온 모델을 그린다.
+            // [최적화] 면마다 glBegin/glEnd/glPolygonMode 를 호출하던 것을 루프 밖으로 이동.
+            // trophy.dat(면 1152개) 기준 프레임당 1152쌍 -> 1쌍.
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+            glBegin(GL_TRIANGLES);
             for (int i = 0; i < fnum; i++) {
-                glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-                glBegin(GL_TRIANGLES);
                 glVertex3f(mpoint[mface[i].ip[0]].x, mpoint[mface[i].ip[0]].y, mpoint[mface[i].ip[0]].z);
                 glVertex3f(mpoint[mface[i].ip[1]].x, mpoint[mface[i].ip[1]].y, mpoint[mface[i].ip[1]].z);
                 glVertex3f(mpoint[mface[i].ip[2]].x, mpoint[mface[i].ip[2]].y, mpoint[mface[i].ip[2]].z);
-                glEnd();
             }
+            glEnd();
             glPopMatrix();
         }
     }
