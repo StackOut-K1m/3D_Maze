@@ -213,9 +213,8 @@ public:
 
     // Texture initialization function
     void initTexture() {
-        if (textureID != 0) {
-            glDeleteTextures(1, &textureID);
-        }
+        // [수정] 이 함수는 생성자에서 호출되므로 textureID 는 아직 유효한 값이 아니다.
+        // 미초기화 값으로 glDeleteTextures 를 호출하던 부분을 제거한다.
         const char* textureName;
 
         // 인자로 받은 정수에 따라 텍스처를 다르게 설정한다.
@@ -373,7 +372,8 @@ private:
     glm::vec3 direction_height;
     float width;
     float height;
-    GLuint textureID;
+    GLuint textureID = 0;   // [수정] 미초기화 상태로 glDeleteTextures 에 넘겨져
+                            // 다른 객체의 텍스처를 삭제하던 버그의 원인이었음
 };
 
 // 배터리 3개 생성
