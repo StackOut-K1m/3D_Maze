@@ -935,6 +935,7 @@ void keyboard(unsigned char key, int x, int y) {
     // 배터리 전부 획득 시 잠금 장치 제거
     if (item1Exists == false && item2Exists == false && item3Exists == false && lockExists) {
         releaseWallsLock();
+        lockExists = false;   // [수정] 해제 후 플래그를 내려 반복 호출을 막는다
     }
 
     updateCamera();
