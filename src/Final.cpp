@@ -6,6 +6,8 @@
 #include <SOIL.h>
 #include <fstream>
 #include <vector>
+#include <map>
+#include <string>
 #include <direct.h>
 
 using namespace std;
@@ -38,6 +40,32 @@ typedef struct {
 } Face;
 
 GLuint textureFloor1, textureFloor2;
+
+// [최적화] 텍스처 캐시
+// 기존에는 벽 객체마다 SOIL_CREATE_NEW_ID 로 새 텍스처를 발급해 133개가 생성되었으나
+// 실제 이미지는 7종뿐이므로, 파일 경로를 키로 삼아 텍스처 ID를 공유한다.
+static std::map<std::string, GLuint> g_textureCache;
+
+static GLuint loadTextureCached(const char* path) {
+    std::map<std::string, GLuint>::iterator it = g_textureCache.find(path);
+    if (it != g_textureCache.end()) return it->second;
+
+    GLuint id = SOIL_load_OGL_texture(path, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
+    if (!id) {
+        printf("텍스처를 불러올 수 없습니다. : %s\n", SOIL_last_result());
+        return 0;
+    }
+
+    // 해당 텍스처를 바인딩한 상태에서 파라미터를 설정한다.
+    glBindTexture(GL_TEXTURE_2D, id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    g_textureCache[path] = id;
+    return id;
+}
 
 // 카메라 업데이트
 void updateCamera() {
@@ -253,21 +281,7 @@ public:
             break;
         }
 
-        textureID = SOIL_load_OGL_texture(
-            textureName,
-            SOIL_LOAD_AUTO,
-            SOIL_CREATE_NEW_ID,
-            SOIL_FLAG_INVERT_Y
-        );
-        if (!textureID) {
-            printf("텍스처를 불러올 수 없습니다. : %s\n", SOIL_last_result());
-        }
-
-        // 텍스처 설정
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+        textureID = loadTextureCached(textureName);
     }
 
     virtual void readModel(string fname) {
