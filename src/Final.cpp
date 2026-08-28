@@ -153,9 +153,9 @@ public:
             glm::mat4 model = glm::translate(glm::mat4(1.0f), position);
 
             // 방향 벡터의 각 성분에 대해 세 번 회전
-            model = glm::rotate(model, glm::radians(glm::degrees(atan2(direction.x, direction.z))), glm::vec3(0.0f, 1.0f, 0.0f));
-            model = glm::rotate(model, glm::radians(glm::degrees(atan2(direction.y, direction.x))), glm::vec3(0.0f, 0.0f, 1.0f));
-            model = glm::rotate(model, glm::radians(glm::degrees(atan2(direction.z, direction.y))), glm::vec3(1.0f, 0.0f, 0.0f));
+            model = glm::rotate(model, atan2(direction.x, direction.z), glm::vec3(0.0f, 1.0f, 0.0f));
+            model = glm::rotate(model, atan2(direction.y, direction.x), glm::vec3(0.0f, 0.0f, 1.0f));
+            model = glm::rotate(model, atan2(direction.z, direction.y), glm::vec3(1.0f, 0.0f, 0.0f));
 
             glMultMatrixf(glm::value_ptr(model));
             glColor3f(1.0f, 0.7f, 0.1f);
