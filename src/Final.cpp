@@ -105,8 +105,9 @@ public:
         char s[81];
         int i;
 
-        if (mpoint != NULL) delete[] mpoint;
-        if (mface != NULL) delete[] mface;
+        if (mpoint != NULL) { delete[] mpoint; mpoint = NULL; }
+        if (mface  != NULL) { delete[] mface;  mface  = NULL; }
+        pnum = 0; fnum = 0;
 
         _chdir("../bin/");
 
@@ -215,8 +216,8 @@ private:
     string polygonName;
     Point* mpoint = NULL;
     Face* mface = NULL;
-    int pnum;
-    int fnum;
+    int pnum = 0;   // [수정] 미초기화 시 render()가 쓰레기 값으로 순회할 수 있음
+    int fnum = 0;
 };
 
 class PlaneObject : public MapObject {
