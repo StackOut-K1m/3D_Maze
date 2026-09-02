@@ -163,6 +163,7 @@ FACE = <면 수>
 | IDE | Visual Studio 2022 (C++를 사용한 데스크톱 개발) |
 | 툴셋 | MSVC v143 (원본 빌드는 v14.37) |
 | **플랫폼** | **x86 (Win32)** — 동봉된 `freeglut.dll`이 32비트입니다 |
+| 확인 환경 | Visual Studio 2022 (v145 툴셋), vcpkg, x86 Debug/Release 빌드 및 실행 확인 |
 | 서브시스템 | 콘솔 |
 
 ### 의존 라이브러리 (모두 32비트)
@@ -178,45 +179,62 @@ FACE = <면 수>
 교체**했습니다. 디코더가 동일하므로 로딩 동작에는 차이가 없고, 단일 헤더라 별도 빌드가
 필요 없습니다.
 
-### 프로젝트 설정
+### 빌드 절차
 
-1. Visual Studio 2022 → **새 프로젝트 → 콘솔 앱 (C++)** 생성
-   (빈 프로젝트로 만들 경우 링커 → 시스템 → 하위 시스템을 `콘솔`로 지정)
-2. 기본 생성된 `.cpp`를 제거하고 `src/Final.cpp`를 프로젝트에 추가
-3. 솔루션 플랫폼을 **x86**으로 변경
-4. 프로젝트 속성에서 다음을 설정
+솔루션과 프로젝트 파일이 저장소에 포함되어 있어 별도 설정이 필요 없습니다.
 
-   | 위치 | 값 |
-   | --- | --- |
-   | C/C++ → 일반 → SDL 검사 | **아니요(/sdl-)** — `/sdl`은 `_CRT_SECURE_NO_WARNINGS`를 무시하고 `fopen`/`fscanf` 경고를 에러로 승격시킵니다 |
-   | 링커 → 입력 → 추가 종속성 | `opengl32.lib` ; `glu32.lib` (+ Debug는 `freeglutd.lib`, Release는 `freeglut.lib`) |
+1. [vcpkg](https://github.com/microsoft/vcpkg)를 설치하고 32비트 의존성을 받습니다.
 
-   `vcpkg integrate install`을 실행했다면 포함/라이브러리 경로와 DLL 복사는 자동 처리됩니다.
-   수동으로 설정할 경우 Debug 구성은 `C:\vcpkg\installed\x86-windows\debug\lib`를 사용해야 합니다.
+   ```
+   vcpkg install freeglut:x86-windows glm:x86-windows
+   vcpkg integrate install
+   ```
 
-5. 빌드 산출물을 아래 배치가 되도록 출력 디렉터리를 지정
-6. `freeglut.dll`을 빌드된 exe와 같은 폴더에 복사
+2. `3DMaze/3DMaze.slnx`를 Visual Studio 2022로 엽니다.
+3. 플랫폼이 **x86**인지 확인하고 빌드합니다. (Ctrl+Shift+B)
+4. Ctrl+F5로 실행합니다.
 
-### ⚠️ 실행 경로 (중요)
+`vcpkg integrate install`이 포함/라이브러리 경로 설정과 `freeglut.dll` 복사를 자동으로
+처리합니다. Debug 구성은 `freeglutd.dll`, Release 구성은 `freeglut.dll`이 복사됩니다.
+
+프로젝트 파일에 미리 적용해 둔 설정입니다.
+
+| 항목 | 값 | 이유 |
+| --- | --- | --- |
+| SDL 검사 | 해제(`/sdl-`) | `/sdl`은 `_CRT_SECURE_NO_WARNINGS`를 무시하고 `fopen`/`fscanf` 경고를 에러로 승격시킵니다 |
+| 디버거 작업 디렉터리 | `$(ProjectDir)` | 아래 실행 경로 참조 |
+| 하위 시스템 | 콘솔 | 모델 로드 실패 등의 메시지를 콘솔로 출력합니다 |
+
+### ⚠️ 실행 경로
 
 `MapObject::readModel()`이 `_chdir("../bin/")`으로 작업 디렉터리를 옮기고, 텍스처 경로도
-`"../bin/Texture/..."`로 잡혀 있습니다. 따라서 **실행 파일은 `bin/`과 같은 레벨의 폴더에서
-실행되어야** 리소스를 찾습니다.
+`"../bin/Texture/..."`로 잡혀 있습니다. 따라서 **작업 디렉터리는 `bin/`을 포함한 폴더의
+직속 하위여야** 합니다.
+
+프로젝트가 `3D_Maze/3DMaze/`에 있으므로 `$(ProjectDir)`가 이 조건을 만족합니다.
 
 ```
-3D_Maze/
-├── bin/            ← 모델·텍스처 (리소스)
-│   └── Texture/
-└── Debug/          ← 여기서 실행
+$(ProjectDir) = 3D_Maze/3DMaze/
+    → _chdir("../bin/")  →  3D_Maze/bin/     ✓
+```
+
+프로젝트 폴더를 다른 깊이로 옮기면 이 경로가 깨집니다. 콘솔에 `No file`이 반복되면
+작업 디렉터리를 먼저 확인하세요.
+
+### 배포
+
+`_chdir("../bin/")`는 `bin/` 안에서 실행할 때도 성립합니다 (`bin/../bin/` = `bin/`).
+따라서 배포는 실행 파일과 DLL을 리소스와 함께 `bin/`에 넣는 단일 폴더 구성이 가장
+간단하며, 2023년 제출본이 이 구조입니다.
+
+```
+배포 폴더/
+└── bin/
     ├── Final.exe
-    └── freeglut.dll
+    ├── freeglut.dll
+    ├── *.dat        (모델 8종)
+    └── Texture/     (텍스처 7종)
 ```
-
-Visual Studio에서 디버깅 실행하려면 **디버깅 → 작업 디렉터리**를 `$(SolutionDir)Debug\`로
-지정하세요. 저장소 루트에서 바로 실행하면 경로가 어긋나 모델과 텍스처가 로드되지 않습니다.
-
-> 프로젝트 파일(`.sln` / `.vcxproj`)은 저장소에 포함하지 않았습니다. 위 설정으로 새로
-> 생성해 주세요. 생성한 프로젝트를 함께 관리하려면 `.gitignore`의 해당 항목을 지우면 됩니다.
 
 ## 이후 리팩터링
 

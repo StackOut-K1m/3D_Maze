@@ -1,0 +1,7 @@
+<Solution>
+  <Configurations>
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Project Path="3DMaze.vcxproj" Id="98740282-9d5c-4a58-82ff-21b760cd8fdd" />
+</Solution>
