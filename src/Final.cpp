@@ -3,7 +3,11 @@
 #include <GL/glut.h>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <SOIL.h>
+// [의존성 교체] SOIL은 2008년 이후 개발이 중단되어 최신 MSVC에서 빌드가 어렵다.
+// SOIL이 내부적으로 사용하던 stb_image를 직접 링크해 단일 헤더로 대체한다.
+// 디코더가 동일하므로 로딩 동작에는 차이가 없다.
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 #include <fstream>
 #include <vector>
 #include <map>
@@ -50,14 +54,30 @@ static GLuint loadTextureCached(const char* path) {
     std::map<std::string, GLuint>::iterator it = g_textureCache.find(path);
     if (it != g_textureCache.end()) return it->second;
 
-    GLuint id = SOIL_load_OGL_texture(path, SOIL_LOAD_AUTO, SOIL_CREATE_NEW_ID, SOIL_FLAG_INVERT_Y);
-    if (!id) {
-        printf("텍스처를 불러올 수 없습니다. : %s\n", SOIL_last_result());
+    // OpenGL의 텍스처 원점은 좌하단이므로 상하를 반전해 읽는다.
+    // (기존 SOIL_FLAG_INVERT_Y 와 동일한 동작)
+    stbi_set_flip_vertically_on_load(1);
+
+    // Texture 폴더의 파일들은 확장자가 .bmp 이지만 대부분 실제로는 JPEG 이다.
+    // stb_image 는 확장자가 아니라 내용으로 형식을 판별한다.
+    int w = 0, h = 0, ch = 0;
+    unsigned char* pixels = stbi_load(path, &w, &h, &ch, 0);
+    if (!pixels) {
+        printf("텍스처를 불러올 수 없습니다. : %s (%s)\n", path, stbi_failure_reason());
         return 0;
     }
 
-    // 해당 텍스처를 바인딩한 상태에서 파라미터를 설정한다.
+    GLenum format = (ch == 4) ? GL_RGBA : (ch == 1) ? GL_LUMINANCE : GL_RGB;
+
+    GLuint id = 0;
+    glGenTextures(1, &id);
     glBindTexture(GL_TEXTURE_2D, id);
+
+    // 행 정렬 기본값(4)에 걸리지 않도록 1로 지정한다.
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, format, w, h, 0, format, GL_UNSIGNED_BYTE, pixels);
+    stbi_image_free(pixels);
+
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
