@@ -12,6 +12,8 @@ SOR.exe (모델러)  ──►  *.dat (정점 + 면 인덱스)  ──►  Final
 
 ## 스크린샷
 
+▶ **[실행 영상 (Google Drive)](https://drive.google.com/drive/folders/1kXx4dmovQ7vcLykdQKbDYMmb6_MYGUA_?usp=sharing)**
+
 ![미로 내부](img/maze1.png)
 
 중앙 구역 내부입니다. 벽·바닥·천장이 모두 `PlaneObject` 하나로 처리되며, 텍스처 ID에
