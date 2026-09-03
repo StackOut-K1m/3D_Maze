@@ -15,3 +15,6 @@ x64/
 *.lib
 *.log
 *.tlog
+
+# 캡처 원본 GIF (용량 초과 — README 에는 png 만 사용)
+img/*.gif
